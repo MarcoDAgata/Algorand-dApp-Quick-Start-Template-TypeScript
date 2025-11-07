@@ -398,148 +398,150 @@ const Home: React.FC = () => {
         </div>
 
         {/* Clinician Inbox */}
-        <section id="inbox" className="w-full rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Clinician Inbox</h2>
-            <span className="text-xs text-[var(--text-muted)]">
-              New entries: {inboxEntries.filter((e) => e.status === 'new').length}
+<section
+  id="inbox"
+  className="w-full rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-4"
+>
+  <div className="flex items-center justify-between">
+    <h2 className="text-xl font-semibold">Clinician Inbox</h2>
+    <span className="text-xs text-[var(--text-muted)]">
+      New entries: {inboxEntries.filter((e) => e.status === 'new').length}
+    </span>
+  </div>
+
+  <div className="space-y-4">
+    {inboxEntries.map((entry) => {
+      const entryTimeline = getTimelineForEntry(entry.id)
+
+      return (
+        <div
+          key={entry.id}
+          className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-elevated)] p-5"
+        >
+          {/* Header: 3 columns (name • case • time) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start">
+            <div className="sm:col-span-1">
+              <div className="text-base sm:text-lg font-semibold leading-tight">
+                {entry.patientName}
+              </div>
+            </div>
+            <div className="sm:col-span-1">
+              <div className="text-[var(--text-muted)] text-sm sm:text-base sm:text-center">
+                {entry.caseId}
+              </div>
+            </div>
+            <div className="sm:col-span-1">
+              <div className="text-[var(--text-muted)] text-sm sm:text-right">
+                {entry.timestamp}
+              </div>
+            </div>
+          </div>
+
+          {/* Two-column content: media • parent note + seal */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Media */}
+            <div className="rounded-xl overflow-hidden bg-[var(--surface-subtle)] border border-[var(--outline)] min-h-[9rem] flex items-center justify-center">
+              {/* In production: switch to <video> when needed */}
+              <img
+                src={entry.thumbnailUrl}
+                alt="Submitted media"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Parent info + verification */}
+            <div className="flex flex-col gap-3">
+              <div className="text-[15px] leading-relaxed">
+                <span className="text-[var(--text-secondary)]">Parent note:</span>{' '}
+                <span className="italic text-[var(--text-primary)]">{entry.parentNote}</span>
+              </div>
+
+              {/* Verification seal (compact, non-interactive) */}
+              <div
+                className={`inline-flex items-center gap-2 w-max rounded-full px-3 py-1.5 text-[13px] font-medium border ${
+                  entry.verified
+                    ? 'border-[var(--accent-green)] text-[var(--accent-green)] bg-[color:rgb(16_185_129_/_0.12)]'
+                    : 'border-[var(--accent-yellow)] text-[var(--accent-yellow)] bg-[color:rgb(251_191_36_/_0.12)]'
+                }`}
+                title={entry.verified ? 'MedStamp verified' : 'Verification pending'}
+              >
+                {entry.verified ? 'MedStamp Verified • Bound to case & device' : 'Verification pending'}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions: big, easy-to-tap buttons */}
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => handleRequestNewMedia(entry)}
+              className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(239_68_68)] hover:bg-[color:rgb(220_38_38)] text-white"
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLooksOk(entry)}
+              className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(16_185_129)] hover:bg-[color:rgb(5_150_105)] text-white"
+            >
+              Accept for assessment
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCallFollowUp(entry)}
+              className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(249_115_22)] hover:bg-[color:rgb(234_88_12)] text-white"
+            >
+              Triage
+            </button>
+          </div>
+
+          {/* Clinician notes (no logic change; simple textarea placeholder) */}
+          <div className="mt-5">
+            <label className="block text-sm text-[var(--text-secondary)] mb-2">
+              Clinician notes
+            </label>
+            <textarea
+              rows={3}
+              className="w-full rounded-xl border border-[var(--outline)] bg-[var(--surface-subtle)] px-3 py-2 text-sm outline-none focus:border-[var(--accent-blue)]"
+              placeholder="Add short notes for this entry…"
+            />
+          </div>
+
+          {/* Optional: status tag (kept, bottom-right) */}
+          <div className="mt-4 flex justify-end">
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full ${
+                entry.status === 'new'
+                  ? 'bg-[color:rgb(76_29_149_/_0.50)] text-[color:rgb(224_231_255)]'
+                  : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)]'
+              }`}
+            >
+              {entry.status === 'new' ? 'New' : 'Reviewed'}
             </span>
           </div>
 
-          <p className="text-xs text-[var(--text-muted)]">
-            New entries show a thumbnail, timestamp, parent note, and MedStamp verification. Use
-            the quick actions below – all actions are added to the case timeline.
-          </p>
-
-          <div className="space-y-4">
-            {inboxEntries.map((entry) => {
-              const entryTimeline = getTimelineForEntry(entry.id)
-              const [customTemplate, setCustomTemplate] = useState(entry.pendingRequestTemplate || '')
-
-              // NOTE: using useState inside map is not allowed in real React –
-              // If you want per-entry editable template, lift this state up.
-              // To keep it strictly valid, we’ll *not* use per-entry state here.
-              // Instead, we’ll just use the built-in template and ignore live editing.
-              // (Leaving comment here so you can decide how complex you want it.)
-
-              return (
-                <div
-                  key={entry.id}
-                  className="rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] p-4 flex flex-col gap-3"
-                >
-                  <div className="flex gap-3 flex-col sm:flex-row">
-                    {/* Thumbnail */}
-                    <div className="w-full sm:w-28 h-20 rounded-md overflow-hidden bg-[var(--surface-subtle)] flex items-center justify-center">
-                      <img
-                        src={entry.thumbnailUrl}
-                        alt="Thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Meta */}
-                    <div className="flex-1 space-y-1 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">
-                          {entry.patientName}{' '}
-                          <span className="text-[var(--text-muted)] font-normal">
-                            ({entry.caseId})
-                          </span>
-                        </span>
-                        <span className="text-[var(--text-muted)]">{entry.timestamp}</span>
-                      </div>
-                      <div className="text-[var(--text-secondary)]">
-                        Parent note: <span className="italic">“{entry.parentNote}”</span>
-                      </div>
-
-                      {/* Verify banner */}
-                      <div
-                        className={`mt-1 inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-medium border ${
-                          entry.verified
-                            ? 'border-[var(--accent-green)] text-[var(--accent-green)] bg-[color:rgb(16_185_129_/_0.12)]'
-                            : 'border-[var(--accent-yellow)] text-[var(--accent-yellow)] bg-[color:rgb(251_191_36_/_0.12)]'
-                        }`}
-                      >
-                        <span>Verify MedStamp</span>
-                        <span className="h-1 w-1 rounded-full bg-[var(--accent-green)]" />
-                        <span>{entry.verified ? 'Authentic • Bound to case & device' : 'Verification pending'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleLooksOk(entry)}
-                      className="rounded-md bg-[color:rgb(16_185_129_/_0.80)] px-3 py-1 hover:bg-[color:rgb(16_185_129_/_0.90)]"
-                    >
-                      Looks OK
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRequestNewMedia(entry)}
-                      className="rounded-md bg-[color:rgb(251_191_36_/_0.85)] px-3 py-1 hover:bg-[color:rgb(251_191_36_/_0.95)] text-[var(--surface)]"
-                    >
-                      Ask for new photo/video
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCallFollowUp(entry)}
-                      className="rounded-md bg-[color:rgb(56_189_248_/_0.80)] px-3 py-1 hover:bg-[color:rgb(56_189_248_/_0.90)]"
-                    >
-                      Call / Book follow-up
-                    </button>
-                  </div>
-
-                  {/* Template info */}
-                  <div className="text-[11px] text-[var(--text-muted)]">
-                    Templated request that will appear to the parent next time they open the link:
-                    <br />
-                    <span className="text-[var(--text-primary)]">
-                      “{entry.pendingRequestTemplate ||
-                        'Please show the incision from ~30 cm in good light.'}
-                      ”
-                    </span>
-                  </div>
-
-                  {/* Timeline for this entry */}
-                  {entryTimeline.length > 0 && (
-                    <div className="mt-2 border-t border-[var(--outline)] pt-2">
-                      <div className="text-[11px] text-[var(--text-muted)] mb-1">
-                        Case timeline (latest first):
-                      </div>
-                      <ul className="space-y-1 text-[11px] text-[var(--text-secondary)]">
-                        {entryTimeline.map((t) => (
-                          <li key={t.id} className="flex gap-2">
-                            <span className="text-[var(--text-muted)] min-w-[90px]">
-                              {t.timestamp}
-                            </span>
-                            <span className="font-semibold text-[var(--text-primary)]">{t.action}:</span>
-                            <span>{t.details}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Status tag */}
-                  <div className="flex justify-end">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full ${
-                        entry.status === 'new'
-                          ? 'bg-[color:rgb(76_29_149_/_0.50)] text-[color:rgb(224_231_255)]'
-                          : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      {entry.status === 'new' ? 'New' : 'Reviewed'}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+          {/* Timeline (unchanged, just spacing) */}
+          {entryTimeline.length > 0 && (
+            <div className="mt-4 border-t border-[var(--outline)] pt-3">
+              <div className="text-[11px] text-[var(--text-muted)] mb-1">
+                Case timeline (latest first):
+              </div>
+              <ul className="space-y-1 text-[11px] text-[var(--text-secondary)]">
+                {entryTimeline.map((t) => (
+                  <li key={t.id} className="flex gap-2">
+                    <span className="text-[var(--text-muted)] min-w-[90px]">{t.timestamp}</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{t.action}:</span>
+                    <span>{t.details}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )
+    })}
+  </div>
+</section>
       </main>
 
       {/* Footer */}
