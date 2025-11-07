@@ -1,5 +1,4 @@
-// Home.tsx – Clinician console: issue MedStamps pack + review inbox
-
+// Home.tsx – Clinician console (single-column; semantic tokens via CSS vars in this file)
 import { useWallet } from '@txnlab/use-wallet-react'
 import React, { useEffect, useState } from 'react'
 
@@ -239,23 +238,77 @@ const Home: React.FC = () => {
     timeline.filter((t) => t.entryId === entryId)
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-8 flex flex-col items-center">
-      <div className="w-full max-w-5xl space-y-8">
-        {/* Top: Issue MedStamps */}
-        <div className="w-full rounded-lg border border-slate-800 bg-slate-900/80 p-6 shadow-lg space-y-6">
-          <h1 className="text-xl font-semibold text-center">
-            Proofly – Issue MedStamps
+    <div
+      // Semantic tokens injected here (kept local to this file)
+      style={{
+        // Surfaces
+        ['--surface' as any]: '#0f172a',
+        ['--surface-subtle' as any]: '#1e293b',
+        ['--surface-elevated' as any]: '#111827',
+        // Text
+        ['--text-primary' as any]: '#f8fafc',
+        ['--text-secondary' as any]: '#cbd5e1',
+        ['--text-muted' as any]: '#94a3b8',
+        // Accent
+        ['--accent-yellow' as any]: '#fbbf24',
+        ['--accent-blue' as any]: '#38bdf8',
+        ['--accent-green' as any]: '#10b981',
+        ['--accent-red' as any]: '#ef4444',
+        // Borders
+        ['--outline' as any]: '#334155',
+      }}
+      className="min-h-screen bg-[var(--surface)] text-[var(--text-primary)]"
+    >
+      {/* Top / brand bar */}
+      <header className="border-b border-[var(--outline)]/60 bg-[var(--surface)]/80 backdrop-blur">
+        <div className="mx-auto max-w-3xl px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-md bg-[var(--accent-yellow)]" />
+            <span className="font-semibold tracking-tight">PROOFLY</span>
+          </div>
+          <div className="text-[11px] text-[var(--text-muted)]">
+            {activeAddress ? 'Wallet connected' : 'No wallet connected'}
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+       <section className="relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(60%_60%_at_50%_-10%,rgba(56,189,248,0.15),transparent),radial-gradient(40%_40%_at_120%_10%,rgba(251,191,36,0.15),transparent)]" />
+        <div className="relative mx-auto max-w-3xl px-4 py-16 lg:py-20 text-center">
+          <h1 className="text-4xl/tight font-semibold tracking-tight sm:text-5xl">
+            Proofly —  <span className="text-[var(--accent-yellow)]">Capture Once.<br /></span> Prove Forever.
           </h1>
+          <p className="mt-4 text-[var(--text-secondary)]">
+            Turn moments of care into verifiable proof — instantly and securely.<br />
+             Designed for Patients and Clinicians. Powered by MedStamp.
+          </p>
+          <div className="mt-8 flex justify-center">
+            <a
+              href="#issue"
+              className="rounded-lg bg-[var(--accent-yellow)] px-6 py-3 text-[var(--surface)] font-medium shadow hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)]/70"
+            >
+              Issue MedStamps
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* MAIN single-column */}
+      <main id="issue" className="mx-auto max-w-3xl px-4 pb-20 space-y-8">
+        {/* Issue MedStamps panel */}
+        <div className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-6">
+          <h2 className="text-2xl font-semibold">Issue New MedStamps</h2>
 
           {/* Wallet status */}
-          <div className="text-sm font-mono break-all">
+          <div className="text-xs font-mono break-all rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] p-3">
             {activeAddress ? (
               <>
-                <span className="text-slate-400 block mb-1">Connected wallet:</span>
+                <span className="text-[var(--text-muted)] block mb-1">Connected wallet:</span>
                 <span>{activeAddress}</span>
               </>
             ) : (
-              <span className="text-red-400">
+              <span className="text-[var(--accent-red)]">
                 No wallet connected. Open the wallet modal in your main app to connect.
               </span>
             )}
@@ -263,14 +316,14 @@ const Home: React.FC = () => {
 
           {/* Balance */}
           <div>
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="text-slate-400">Token</span>
-              <span className="text-slate-400">Balance</span>
+            <div className="flex items-center justify-between text-xs mb-1 text-[var(--text-muted)]">
+              <span>Token</span>
+              <span>Balance</span>
             </div>
-            <div className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-sm">
+            <div className="flex items-center justify-between rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 text-sm">
               <span>
                 {TOKEN_NAME}{' '}
-                <span className="text-slate-500 text-xs">(ID: {TOKEN_ID})</span>
+                <span className="text-[var(--text-muted)] text-xs">(ID: {TOKEN_ID})</span>
               </span>
               <span>{loadingBalance ? 'Loading...' : balance ?? '--'}</span>
             </div>
@@ -279,7 +332,7 @@ const Home: React.FC = () => {
           {/* Patient selection + issue form */}
           <form onSubmit={handleIssueMedStamps} className="space-y-4">
             <div className="space-y-1 text-sm">
-              <label className="block text-slate-300">Select patient / case</label>
+              <label className="block text-[var(--text-secondary)]">Select patient / case</label>
               <select
                 value={selectedPatient?.id || ''}
                 onChange={(e) =>
@@ -287,7 +340,7 @@ const Home: React.FC = () => {
                     MOCK_PATIENTS.find((p) => p.id === e.target.value) || null
                   )
                 }
-                className="w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                className="w-full rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 text-sm outline-none focus:border-[var(--accent-blue)]"
               >
                 <option value="">-- Select patient --</option>
                 {MOCK_PATIENTS.map((p) => (
@@ -299,27 +352,35 @@ const Home: React.FC = () => {
             </div>
 
             {selectedPatient && (
-              <div className="text-xs text-slate-400 border border-slate-800 rounded-md p-2 bg-slate-900/60">
-                <strong>Selected:</strong> {selectedPatient.name} ({selectedPatient.id})<br />
-                DOB: {selectedPatient.dob}
-                <br />
-                Status: {selectedPatient.status}
+              <div className="text-xs text-[var(--text-secondary)] border border-[var(--outline)] rounded-lg p-3 bg-[var(--surface-elevated)]">
+                <div className="font-semibold text-[var(--text-primary)]">
+                  {selectedPatient.name} ({selectedPatient.id})
+                </div>
+                <div>DOB: {selectedPatient.dob}</div>
+                <div>Status: {selectedPatient.status}</div>
               </div>
             )}
 
-            <p className="text-xs text-slate-400">
-              Clicking <span className="font-semibold">“Issue MedStamps”</span> will generate{' '}
-              <span className="font-semibold">{STAMPS_PER_PACK} single-use MedStamps</span> for
-              this case, valid for <span className="font-semibold">{VALIDITY_DAYS} days</span>.
-              The parent receives a secure link by SMS/email (and optionally a printed QR).
+            <p className="text-xs text-[var(--text-muted)]">
+              Generate{' '}
+              <span className="font-semibold">{STAMPS_PER_PACK} single-use MedStamps</span> valid for <span className="font-semibold">{VALIDITY_DAYS} days</span>.
+
             </p>
 
-            {error && <div className="text-xs text-red-400">{error}</div>}
-            {success && <div className="text-xs text-emerald-400">{success}</div>}
+            {error && (
+              <div className="text-xs border border-[var(--accent-red)]/50 bg-[var(--accent-red)]/10 px-3 py-2 rounded-md text-[var(--accent-red)]">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="text-xs border border-[var(--accent-green)]/50 bg-[var(--accent-green)]/10 px-3 py-2 rounded-md text-[var(--accent-green)]">
+                {success}
+              </div>
+            )}
 
             {secureLink && (
-              <div className="text-xs text-slate-300 break-all rounded-md border border-slate-800 bg-slate-900 px-3 py-2">
-                <span className="text-slate-400 block mb-1">
+              <div className="text-xs text-[var(--text-primary)] break-all rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2">
+                <span className="text-[var(--text-muted)] block mb-1">
                   Debug (secure link preview – not for production display):
                 </span>
                 {secureLink}
@@ -329,23 +390,23 @@ const Home: React.FC = () => {
             <button
               type="submit"
               disabled={!activeAddress || issuing}
-              className="mt-2 w-full rounded-md bg-sky-600 px-4 py-2 text-sm font-medium disabled:bg-slate-700 disabled:text-slate-400"
+              className="mt-2 w-full rounded-lg bg-[var(--accent-yellow)] px-4 py-3 text-sm font-medium text-[var(--surface)] shadow hover:brightness-95 disabled:bg-[var(--surface-elevated)] disabled:text-[var(--text-muted)]"
             >
               {issuing ? 'Issuing…' : 'Issue MedStamps'}
             </button>
           </form>
         </div>
 
-        {/* Bottom: Clinician Inbox */}
-        <div className="w-full rounded-lg border border-slate-800 bg-slate-900/80 p-6 shadow-lg space-y-4">
+        {/* Clinician Inbox */}
+        <section id="inbox" className="w-full rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Clinician inbox</h2>
-            <span className="text-xs text-slate-400">
+            <h2 className="text-xl font-semibold">Clinician Inbox</h2>
+            <span className="text-xs text-[var(--text-muted)]">
               New entries: {inboxEntries.filter((e) => e.status === 'new').length}
             </span>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--text-muted)]">
             New entries show a thumbnail, timestamp, parent note, and MedStamp verification. Use
             the quick actions below – all actions are added to the case timeline.
           </p>
@@ -364,12 +425,11 @@ const Home: React.FC = () => {
               return (
                 <div
                   key={entry.id}
-                  className="rounded-md border border-slate-800 bg-slate-950/60 p-3 flex flex-col gap-3"
+                  className="rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] p-4 flex flex-col gap-3"
                 >
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-col sm:flex-row">
                     {/* Thumbnail */}
-                    <div className="w-28 h-20 rounded-md overflow-hidden bg-slate-800 flex items-center justify-center">
-                      {/* In production: distinguish photo vs video and use <video> if needed */}
+                    <div className="w-full sm:w-28 h-20 rounded-md overflow-hidden bg-[var(--surface-subtle)] flex items-center justify-center">
                       <img
                         src={entry.thumbnailUrl}
                         alt="Thumbnail"
@@ -380,29 +440,28 @@ const Home: React.FC = () => {
                     {/* Meta */}
                     <div className="flex-1 space-y-1 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-100">
+                        <span className="font-semibold">
                           {entry.patientName}{' '}
-                          <span className="text-slate-500 font-normal">
+                          <span className="text-[var(--text-muted)] font-normal">
                             ({entry.caseId})
                           </span>
                         </span>
-                        <span className="text-slate-400">{entry.timestamp}</span>
+                        <span className="text-[var(--text-muted)]">{entry.timestamp}</span>
                       </div>
-                      <div className="text-slate-300">
+                      <div className="text-[var(--text-secondary)]">
                         Parent note: <span className="italic">“{entry.parentNote}”</span>
                       </div>
 
                       {/* Verify banner */}
-                      <div className="mt-1 inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-medium
-                        border
-                        ${
+                      <div
+                        className={`mt-1 inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-medium border ${
                           entry.verified
-                            ? 'border-emerald-500 text-emerald-300 bg-emerald-900/30'
-                            : 'border-yellow-400 text-yellow-200 bg-yellow-900/30'
-                        }
-                      ">
+                            ? 'border-[var(--accent-green)] text-[var(--accent-green)] bg-[color:rgb(16_185_129_/_0.12)]'
+                            : 'border-[var(--accent-yellow)] text-[var(--accent-yellow)] bg-[color:rgb(251_191_36_/_0.12)]'
+                        }`}
+                      >
                         <span>Verify MedStamp</span>
-                        <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                        <span className="h-1 w-1 rounded-full bg-[var(--accent-green)]" />
                         <span>{entry.verified ? 'Authentic • Bound to case & device' : 'Verification pending'}</span>
                       </div>
                     </div>
@@ -413,31 +472,31 @@ const Home: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleLooksOk(entry)}
-                      className="rounded-md bg-emerald-700/80 px-3 py-1 hover:bg-emerald-600 disabled:bg-slate-700"
+                      className="rounded-md bg-[color:rgb(16_185_129_/_0.80)] px-3 py-1 hover:bg-[color:rgb(16_185_129_/_0.90)]"
                     >
                       Looks OK
                     </button>
                     <button
                       type="button"
                       onClick={() => handleRequestNewMedia(entry)}
-                      className="rounded-md bg-amber-700/80 px-3 py-1 hover:bg-amber-600 disabled:bg-slate-700"
+                      className="rounded-md bg-[color:rgb(251_191_36_/_0.85)] px-3 py-1 hover:bg-[color:rgb(251_191_36_/_0.95)] text-[var(--surface)]"
                     >
                       Ask for new photo/video
                     </button>
                     <button
                       type="button"
                       onClick={() => handleCallFollowUp(entry)}
-                      className="rounded-md bg-sky-700/80 px-3 py-1 hover:bg-sky-600 disabled:bg-slate-700"
+                      className="rounded-md bg-[color:rgb(56_189_248_/_0.80)] px-3 py-1 hover:bg-[color:rgb(56_189_248_/_0.90)]"
                     >
                       Call / Book follow-up
                     </button>
                   </div>
 
                   {/* Template info */}
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-[var(--text-muted)]">
                     Templated request that will appear to the parent next time they open the link:
                     <br />
-                    <span className="text-slate-200">
+                    <span className="text-[var(--text-primary)]">
                       “{entry.pendingRequestTemplate ||
                         'Please show the incision from ~30 cm in good light.'}
                       ”
@@ -446,18 +505,18 @@ const Home: React.FC = () => {
 
                   {/* Timeline for this entry */}
                   {entryTimeline.length > 0 && (
-                    <div className="mt-2 border-t border-slate-800 pt-2">
-                      <div className="text-[11px] text-slate-400 mb-1">
+                    <div className="mt-2 border-t border-[var(--outline)] pt-2">
+                      <div className="text-[11px] text-[var(--text-muted)] mb-1">
                         Case timeline (latest first):
                       </div>
-                      <ul className="space-y-1 text-[11px] text-slate-300">
+                      <ul className="space-y-1 text-[11px] text-[var(--text-secondary)]">
                         {entryTimeline.map((t) => (
                           <li key={t.id} className="flex gap-2">
-                            <span className="text-slate-500 min-w-[90px]">
+                            <span className="text-[var(--text-muted)] min-w-[90px]">
                               {t.timestamp}
                             </span>
-                            <span className="font-semibold">{t.action}:</span>
-                            <span className="text-slate-200">{t.details}</span>
+                            <span className="font-semibold text-[var(--text-primary)]">{t.action}:</span>
+                            <span>{t.details}</span>
                           </li>
                         ))}
                       </ul>
@@ -469,8 +528,8 @@ const Home: React.FC = () => {
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full ${
                         entry.status === 'new'
-                          ? 'bg-indigo-900/50 text-indigo-200'
-                          : 'bg-slate-800 text-slate-300'
+                          ? 'bg-[color:rgb(76_29_149_/_0.50)] text-[color:rgb(224_231_255)]'
+                          : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)]'
                       }`}
                     >
                       {entry.status === 'new' ? 'New' : 'Reviewed'}
@@ -480,8 +539,15 @@ const Home: React.FC = () => {
               )
             })}
           </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-[var(--outline)]">
+        <div className="mx-auto max-w-3xl px-4 py-8 text-center text-xs text-[var(--text-muted)]">
+          © {new Date().getFullYear()} Proofly • MedStamp on Algorand
         </div>
-      </div>
+      </footer>
     </div>
   )
 }
