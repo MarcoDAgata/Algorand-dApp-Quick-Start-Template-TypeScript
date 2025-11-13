@@ -1,7 +1,10 @@
 // Home.tsx – Clinician console (single-column; semantic tokens via CSS vars in this file)
+import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import { useWallet } from '@txnlab/use-wallet-react'
 import React, { useEffect, useState } from 'react'
-
+import { BsWallet2 } from 'react-icons/bs'
+import ConnectWallet from './components/ConnectWallet'
+import { getAlgodConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
 const TOKEN_NAME = 'MedStamp'
 const TOKEN_ID = 749176800
 const STAMPS_PER_PACK = 5
@@ -15,14 +18,15 @@ interface Patient {
   name: string
   dob: string
   status: string
+  wallet: string
 }
 
 const MOCK_PATIENTS: Patient[] = [
-  { id: 'P-2024-001', name: 'Liam van Dijk', dob: '2019-03-15', status: 'Ready for discharge' },
-  { id: 'P-2024-002', name: 'Sofia Bakker', dob: '2020-07-09', status: 'In recovery' },
-  { id: 'P-2024-003', name: 'Noah Visser', dob: '2022-01-22', status: 'Ready for discharge' },
-  { id: 'P-2024-004', name: 'Mila Janssen', dob: '2021-10-30', status: 'Follow-up' },
-  { id: 'P-2024-005', name: 'Lucas de Jong', dob: '2018-12-02', status: 'Ready for discharge' },
+  { id: 'P-2024-001', name: 'Marco Dgata', dob: '2019-03-15', status: 'Ready for discharge', wallet: 'JNBRI4QXSUYYGWXI5RWCJJHZEH55AWXJHNV26XASCAGBAWAVV4D7GF46LA'},
+  { id: 'P-2024-002', name: 'Sofia Bakker', dob: '2020-07-09', status: 'In recovery', wallet: 'JNBRI4QXSUYYGWXI5RWCJJHZEH55AWXJHNV26XASCAGBAWAVV4D7GF46LA'},
+  { id: 'P-2024-003', name: 'Noah Visser', dob: '2022-01-22', status: 'Ready for discharge', wallet: 'JNBRI4QXSUYYGWXI5RWCJJHZEH55AWXJHNV26XASCAGBAWAVV4D7GF46LA' },
+  { id: 'P-2024-004', name: 'Mila Janssen', dob: '2021-10-30', status: 'Follow-up', wallet: 'JNBRI4QXSUYYGWXI5RWCJJHZEH55AWXJHNV26XASCAGBAWAVV4D7GF46LA' },
+  { id: 'P-2024-005', name: 'Lucas de Jong', dob: '2018-12-02', status: 'Ready for discharge', wallet: 'JNBRI4QXSUYYGWXI5RWCJJHZEH55AWXJHNV26XASCAGBAWAVV4D7GF46LA' },
 ]
 
 // ----------------------
@@ -91,8 +95,9 @@ const formatNow = () => {
 }
 
 const Home: React.FC = () => {
-  const { activeAddress } = useWallet()
-
+  const LORA = 'https://lora.algokit.io/testnet'
+  const { activeAddress, transactionSigner } = useWallet()
+  const [openWalletModal, setOpenWalletModal] = useState<boolean>(false)
   const [balance, setBalance] = useState<number | null>(null)
   const [loadingBalance, setLoadingBalance] = useState(false)
 
@@ -105,81 +110,117 @@ const Home: React.FC = () => {
   const [inboxEntries, setInboxEntries] = useState<InboxEntry[]>(INITIAL_INBOX)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
 
+  const algodConfig = getAlgodConfigFromViteEnvironment()
+  const algorand = AlgorandClient.fromConfig({ algodConfig })
   // ------------------------
-  // Fetch token balance
-  // ------------------------
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (!activeAddress) {
-        setBalance(null)
-        return
-      }
-
-      setLoadingBalance(true)
-      setError(null)
-
-      try {
-        // 🔴 TODO: Replace with real Algorand client call
-        const mockBalance = 100
-        setBalance(mockBalance)
-      } catch (e: any) {
-        console.error(e)
-        setError('Failed to load token balance.')
-      } finally {
-        setLoadingBalance(false)
-      }
+// Fetch token balance
+// ------------------------
+useEffect(() => {
+  const fetchBalance = async () => {
+    if (!activeAddress) {
+      setBalance(null)
+      return
     }
 
-    fetchBalance()
-  }, [activeAddress])
+    setLoadingBalance(true)
+    setError(null)
+
+    try {
+      // 👇 Pick the right network:
+      //  - MainNet:  https://mainnet-api.algonode.cloud
+      //  - TestNet:  https://testnet-api.algonode.cloud
+      const baseUrl = 'https://testnet-api.algonode.cloud'
+
+      const res = await fetch(`${baseUrl}/v2/accounts/${activeAddress}`)
+      if (!res.ok) {
+        throw new Error(`Algod responded with ${res.status}`)
+      }
+
+      const data = await res.json()
+
+      // Find the MedStamp ASA by its ID
+      const asset = data.assets?.find(
+        (a: any) => a['asset-id'] === TOKEN_ID
+      )
+
+      // If the wallet opted-in, use its amount; otherwise 0
+      setBalance(asset ? asset.amount : 0)
+    } catch (e) {
+      console.error('Failed to fetch MedStamp balance:', e)
+      setError('Failed to load MedStamp balance.')
+      setBalance(null)
+    } finally {
+      setLoadingBalance(false)
+    }
+  }
+
+  fetchBalance()
+}, [activeAddress])
 
   // ------------------------
   // Handle issue MedStamps
   // ------------------------
-  const handleIssueMedStamps = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(null)
-    setSecureLink(null)
+ const handleIssueMedStamps = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setError(null)
+  setSuccess(null)
+  setSecureLink(null)
 
-    if (!activeAddress) {
-      setError('Connect your wallet first.')
-      return
-    }
-
-    if (!selectedPatient) {
-      setError('Please select a patient.')
-      return
-    }
-
-    if (balance !== null && balance < STAMPS_PER_PACK) {
-      setError(`You need at least ${STAMPS_PER_PACK} ${TOKEN_NAME}s to issue this pack.`)
-      return
-    }
-
-    setIssuing(true)
-
-    try {
-      // 🔴 TODO: Call backend that issues MedStamps + returns secure link
-      await new Promise((r) => setTimeout(r, 1000)) // mock delay
-
-      const mockLink = `https://proofly.example/parent/case/${encodeURIComponent(
-        selectedPatient.id
-      )}?token=demo-token`
-
-      setSecureLink(mockLink)
-      setSuccess(
-        `Issued ${STAMPS_PER_PACK} single-use MedStamps for ${selectedPatient.name}. The parent will receive a secure link by SMS/email.`
-      )
-
-      setBalance((prev) => (prev !== null ? prev - STAMPS_PER_PACK : prev))
-    } catch (e: any) {
-      console.error(e)
-      setError('Failed to issue MedStamps.')
-    } finally {
-      setIssuing(false)
-    }
+  if (!activeAddress || !transactionSigner) {
+    setError('Connect your wallet first.')
+    return
   }
+
+  if (!selectedPatient) {
+    setError('Please select a patient.')
+    return
+  }
+
+  if (balance !== null && balance < STAMPS_PER_PACK) {
+    setError(`You need at least ${STAMPS_PER_PACK} ${TOKEN_NAME}s to issue this pack.`)
+    return
+  }
+
+  setIssuing(true)
+
+  try {
+    // 1. Amount in asset units
+    // If MedStamp has decimals > 0, multiply by 10 ** decimals here.
+    const medStampAmount = BigInt(STAMPS_PER_PACK)
+
+    // 2. Send STAMPS_PER_PACK MedStamps from clinician → patient wallet
+    const txResult = await algorand.send.assetTransfer({
+      signer: transactionSigner,
+      sender: activeAddress,
+      receiver: selectedPatient.wallet,
+      assetId: BigInt(TOKEN_ID),
+      amount: medStampAmount,
+    })
+
+    const txId = txResult?.txIds?.[0]
+
+    // 3. (Still mock) secure link generation
+    const mockLink = `https://proofly.example/parent/case/${encodeURIComponent(
+      selectedPatient.id
+    )}?token=demo-token`
+
+    setSecureLink(mockLink)
+    setSuccess(
+      `Issued ${STAMPS_PER_PACK} single-use MedStamps for ${selectedPatient.name}.` +
+        (txId ? ` TxID: ${txId}` : '')
+    )
+
+    // 4. Update local balance optimistically
+    setBalance((prev) => (prev !== null ? prev - STAMPS_PER_PACK : prev))
+  } catch (e: any) {
+    console.error('Failed to issue MedStamps:', e)
+    setError(
+      'Failed to issue MedStamps. Make sure your wallet and the patient wallet are both opted in to the token.'
+    )
+  } finally {
+    setIssuing(false)
+  }
+}
 
   // ------------------------
   // Inbox actions
@@ -266,9 +307,13 @@ const Home: React.FC = () => {
             <div className="h-6 w-6 rounded-md bg-[var(--accent-yellow)]" />
             <span className="font-semibold tracking-tight">PROOFLY</span>
           </div>
-          <div className="text-[11px] text-[var(--text-muted)]">
-            {activeAddress ? 'Wallet connected' : 'No wallet connected'}
-          </div>
+           <button
+          onClick={() => setOpenWalletModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+        >
+          <BsWallet2 className="text-white" />
+          {activeAddress ? 'Wallet Linked' : 'Connect Wallet'}
+        </button>
         </div>
       </header>
 
@@ -550,6 +595,8 @@ const Home: React.FC = () => {
           © {new Date().getFullYear()} Proofly • MedStamp on Algorand
         </div>
       </footer>
+
+      <ConnectWallet openModal={openWalletModal} closeModal={() => setOpenWalletModal(false)} />
     </div>
   )
 }
