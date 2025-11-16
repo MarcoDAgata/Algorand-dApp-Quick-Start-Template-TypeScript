@@ -14,15 +14,18 @@ const algodConfig = getAlgodConfigFromViteEnvironment()
 const algorand = AlgorandClient.fromConfig({ algodConfig })
 
 function resolveBackendBase(): string {
+  // 1) Respect explicit env (Vercel or custom)
   const env = import.meta.env.VITE_API_URL?.trim()
   if (env) return env.replace(/\/$/, '')
 
+  // 2) Codespaces: convert current host to port 3001
   const host = window.location.host
   if (host.endsWith('.app.github.dev')) {
     const base = host.replace(/-\d+\.app\.github\.dev$/, '-3001.app.github.dev')
     return `https://${base}`
   }
 
+  // 3) Plain local fallback
   return 'http://localhost:3001'
 }
 
@@ -64,6 +67,7 @@ const Home: React.FC = () => {
       setError(null)
 
       try {
+        // For the parent flow this would come from backend / secure link.
         const mockBalance = TOTAL_STAMPS
         setBalance(mockBalance)
       } catch (e: any) {
@@ -143,7 +147,7 @@ const Home: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null)
     setSuccess(null)
-    setStampApplied(false)
+    setStampApplied(false) // reset stamp when changing media
 
     const file = e.target.files?.[0] ?? null
     setSelectedFile(file)
@@ -211,14 +215,17 @@ const Home: React.FC = () => {
     setSending(true)
 
     try {
+      // 1️⃣ Build backend URL
       const backendBase = resolveBackendBase()
       const backendApiUrl = `${backendBase.replace(/\/$/, '')}/api/pin-image`
 
+      // 2️⃣ Prepare FormData
       const formData = new FormData()
       formData.append('file', selectedFile)
       formData.append('note', note)
       formData.append('caseId', caseId)
 
+      // 3️⃣ Send to backend
       const res = await fetch(backendApiUrl, {
         method: 'POST',
         body: formData,
@@ -237,9 +244,11 @@ const Home: React.FC = () => {
       const data = await res.json().catch(() => ({} as any))
       void data
 
+      // 4️⃣ Locally consume one MedStamp from this case-pack
       setSuccess('Your MedStamped photo/video has been sent to the hospital.')
       setBalance((prev) => (prev !== null ? prev - COST_PER_STAMP : prev))
 
+      // Reset daily UI state
       setSelectedFile(null)
       setPreviewUrl(null)
       setNote('')
@@ -261,6 +270,7 @@ const Home: React.FC = () => {
 
   return (
     <div
+      // Proofly semantic tokens
       style={{
         ['--surface' as any]: '#0f172a',
         ['--surface-subtle' as any]: '#1e293b',
@@ -276,7 +286,7 @@ const Home: React.FC = () => {
       }}
       className="min-h-screen bg-[var(--surface)] text-[var(--text-primary)] flex flex-col"
     >
-      {/* Top / brand bar */}
+      {/* Header / brand bar */}
       <header className="border-b border-[var(--outline)]/60 bg-[var(--surface)]/80 backdrop-blur">
         <div className="mx-auto max-w-xl px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -309,7 +319,7 @@ const Home: React.FC = () => {
       {/* Main content */}
       <main className="mx-auto max-w-xl px-4 pb-16 space-y-6 flex-1">
         {/* Parent check-up card */}
-        <section className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-5 sm:p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-5">
+        <section className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-5 sm:p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-6">
           {/* Case + MedStamps progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
@@ -344,11 +354,16 @@ const Home: React.FC = () => {
 
           {/* Step 1: Add today’s media */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
-                1
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
+                  1
+                </span>
+                <span>Add today&apos;s photo or video</span>
+              </div>
+              <span className="text-[11px] text-[var(--text-muted)]">
+                Step 1 of 3
               </span>
-              <span>Add today&apos;s photo or video</span>
             </div>
 
             {/* Hidden native input */}
@@ -360,40 +375,91 @@ const Home: React.FC = () => {
               className="hidden"
             />
 
-            <button
-              type="button"
-              onClick={handleAddMediaClick}
-              className="w-full rounded-xl bg-[var(--surface-elevated)] border border-[var(--outline)] px-4 py-3 text-sm font-medium hover:border-[var(--accent-blue)]"
-            >
-              {selectedFile ? 'Change photo or video' : 'Choose photo or video'}
-            </button>
+            {/* Big tile for choosing media */}
+            {!previewUrl && (
+              <button
+                type="button"
+                onClick={handleAddMediaClick}
+                className="
+                  w-full h-44 sm:h-52 rounded-xl border-2 border-dashed border-[var(--outline)]
+                  bg-[var(--surface-elevated)] flex flex-col items-center justify-center
+                  text-[var(--text-secondary)] hover:bg-[var(--surface)]/60 transition
+                "
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-10 w-10 text-[var(--text-muted)] mb-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span className="text-sm font-medium">
+                  Choose a photo or video
+                </span>
+                <span className="text-xs text-[var(--text-muted)] mt-1">
+                  Tap to open your camera or gallery
+                </span>
+              </button>
+            )}
 
+            {/* Preview tile */}
             {previewUrl && (
-              <div className="rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] p-2">
-                <p className="text-[11px] text-[var(--text-muted)] mb-1">
+              <div className="rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] p-3 space-y-2">
+                <p className="text-[11px] text-[var(--text-muted)]">
                   Today&apos;s upload
                 </p>
                 <img
                   src={previewUrl}
                   alt="Selected preview"
-                  className="max-h-64 w-full rounded-lg object-contain"
+                  className="w-full max-h-64 rounded-lg object-contain"
                 />
+                <button
+                  type="button"
+                  onClick={handleAddMediaClick}
+                  className="
+                    w-full mt-2 rounded-md bg-[var(--surface)] px-3 py-2 text-xs
+                    font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)] transition
+                  "
+                >
+                  Change photo or video
+                </button>
               </div>
             )}
           </div>
 
           {/* Step 2: Attach MedStamp */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
-                2
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
+                  2
+                </span>
+                <span>Attach a MedStamp</span>
+                <button
+                  type="button"
+                  className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full border border-[var(--outline)] text-[9px] text-[var(--text-muted)]"
+                  title="A MedStamp securely links your upload to this case, time and device, so your care team knows it really comes from you."
+                >
+                  ?
+                </button>
+              </div>
+              <span className="text-[11px] text-[var(--text-muted)]">
+                Step 2 of 3
               </span>
-              <span>Attach a MedStamp</span>
             </div>
+
             <p className="text-xs text-[var(--text-muted)]">
               This secures your upload so the hospital knows it is really from you and
               belongs to this case.
             </p>
+
             <button
               type="button"
               onClick={handleApplyStamp}
@@ -406,19 +472,27 @@ const Home: React.FC = () => {
             >
               {stampApplied ? 'MedStamp applied' : 'Tap the + box to apply MedStamp'}
             </button>
+
             <p className="text-[10px] text-[var(--text-muted)]">
-              If you see an error saying “Tap the MedStamp + box”, first tap this area.
+              If you see an error saying “Tap the MedStamp + box”, please tap this area
+              first.
             </p>
           </div>
 
-          {/* Step 3: Add note (optional) and send */}
+          {/* Step 3: Add note and send */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
-                3
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
+                  3
+                </span>
+                <span>Add a short note (optional)</span>
+              </div>
+              <span className="text-[11px] text-[var(--text-muted)]">
+                Step 3 of 3
               </span>
-              <span>Add a short note (optional)</span>
             </div>
+
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -426,36 +500,36 @@ const Home: React.FC = () => {
               className="w-full rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 text-sm outline-none focus:border-[var(--accent-blue)]"
               placeholder='For example: "Redness looks better than yesterday"'
             />
+
+            {/* Error / success messages */}
+            {error && (
+              <div className="text-xs rounded-md border border-[var(--accent-red)]/60 bg-[var(--accent-red)]/10 px-3 py-2 text-[var(--accent-red)]">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="text-xs rounded-md border border-[var(--accent-green)]/60 bg-[var(--accent-green)]/10 px-3 py-2 text-[var(--accent-green)]">
+                {success}
+              </div>
+            )}
+
+            {/* Send button */}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending}
+              className="w-full rounded-xl bg-[var(--accent-yellow)] px-4 py-3 text-sm font-semibold text-[var(--surface)] shadow hover:brightness-95 disabled:bg-[var(--surface-elevated)] disabled:text-[var(--text-muted)]"
+            >
+              {sending ? 'Sending…' : 'Send check-up to hospital'}
+            </button>
+
+            <p className="text-[10px] text-[var(--text-muted)] text-center">
+              Your upload is encrypted in transit and can only be viewed by your care team.
+            </p>
           </div>
-
-          {/* Error / success messages */}
-          {error && (
-            <div className="text-xs rounded-md border border-[var(--accent-red)]/60 bg-[var(--accent-red)]/10 px-3 py-2 text-[var(--accent-red)]">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="text-xs rounded-md border border-[var(--accent-green)]/60 bg-[var(--accent-green)]/10 px-3 py-2 text-[var(--accent-green)]">
-              {success}
-            </div>
-          )}
-
-          {/* Send button */}
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={sending}
-            className="w-full rounded-xl bg-[var(--accent-yellow)] px-4 py-3 text-sm font-semibold text-[var(--surface)] shadow hover:brightness-95 disabled:bg-[var(--surface-elevated)] disabled:text-[var(--text-muted)]"
-          >
-            {sending ? 'Sending…' : 'Send check-up to hospital'}
-          </button>
-
-          <p className="text-[10px] text-[var(--text-muted)] text-center mt-1">
-            Your upload is encrypted in transit and can only be viewed by your care team.
-          </p>
         </section>
 
-        {/* Optional wallet panel (unchanged logic, just restyled) */}
+        {/* Wallet panel (optional, same logic – just styled) */}
         <section className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-4 sm:p-5 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-3 text-xs text-[var(--text-muted)]">
           <div className="flex items-center justify-between">
             <span className="font-medium text-[var(--text-secondary)]">
@@ -508,8 +582,12 @@ const Home: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t border-[var(--outline)]">
-        <div className="mx-auto max-w-xl px-4 py-6 text-center text-[11px] text-[var(--text-muted)]">
-          © {new Date().getFullYear()} Proofly • MedStamp on Algorand
+        <div className="mx-auto max-w-xl px-4 py-4 text-center text-[11px] text-[var(--text-muted)] space-y-1">
+          <p>
+            This page is for routine check-ups only. If you are worried or your child
+            seems very unwell, contact your hospital or local emergency number.
+          </p>
+          <p>© {new Date().getFullYear()} Proofly • MedStamp on Algorand</p>
         </div>
       </footer>
 
