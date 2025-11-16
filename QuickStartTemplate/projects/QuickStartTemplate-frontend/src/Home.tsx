@@ -308,12 +308,17 @@ useEffect(() => {
             <span className="font-semibold tracking-tight">PROOFLY</span>
           </div>
            <button
-          onClick={() => setOpenWalletModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
-        >
-          <BsWallet2 className="text-white" />
-          {activeAddress ? 'Wallet Linked' : 'Connect Wallet'}
-        </button>
+  onClick={() => setOpenWalletModal(true)}
+  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition
+    ${
+      activeAddress
+        ? 'bg-[var(--accent-yellow)] text-[var(--surface)] hover:brightness-95'
+        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+    }`}
+>
+  <BsWallet2 className="text-current" />
+  {activeAddress ? 'Wallet linked' : 'Connect wallet'}
+</button>
         </div>
       </header>
 
