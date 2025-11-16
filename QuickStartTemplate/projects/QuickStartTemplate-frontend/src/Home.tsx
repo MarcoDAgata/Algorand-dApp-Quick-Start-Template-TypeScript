@@ -522,29 +522,34 @@ useEffect(() => {
           </div>
 
           {/* Actions: big, easy-to-tap buttons */}
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => handleRequestNewMedia(entry)}
-              className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(239_68_68)] hover:bg-[color:rgb(220_38_38)] text-white"
-            >
-              Reject
-            </button>
-            <button
-              type="button"
-              onClick={() => handleLooksOk(entry)}
-              className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(16_185_129)] hover:bg-[color:rgb(5_150_105)] text-white"
-            >
-              Accept for assessment
-            </button>
-            <button
-              type="button"
-              onClick={() => handleCallFollowUp(entry)}
-              className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(249_115_22)] hover:bg-[color:rgb(234_88_12)] text-white"
-            >
-              Triage
-            </button>
-          </div>
+<div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+  {/* Primary, default action */}
+  <button
+    type="button"
+    onClick={() => handleLooksOk(entry)}
+    className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(16_185_129)] hover:bg-[color:rgb(5_150_105)] text-white"
+  >
+    Accept for assessment
+  </button>
+
+  {/* Escalation / attention path */}
+  <button
+    type="button"
+    onClick={() => handleCallFollowUp(entry)}
+    className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(249_115_22)] hover:bg-[color:rgb(234_88_12)] text-white"
+  >
+    Needs follow-up
+  </button>
+
+  {/* Destructive / end-of-line path */}
+  <button
+    type="button"
+    onClick={() => handleRequestNewMedia(entry)}
+    className="h-12 sm:h-14 rounded-xl px-4 text-base sm:text-lg font-semibold bg-[color:rgb(239_68_68)] hover:bg-[color:rgb(220_38_38)] text-white"
+  >
+    Reject
+  </button>
+</div>
 
           {/* Clinician notes (no logic change; simple textarea placeholder) */}
           <div className="mt-5">
