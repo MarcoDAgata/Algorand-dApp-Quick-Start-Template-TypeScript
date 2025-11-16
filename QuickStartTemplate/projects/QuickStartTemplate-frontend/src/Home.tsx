@@ -516,7 +516,7 @@ useEffect(() => {
                 }`}
                 title={entry.verified ? 'MedStamp verified' : 'Verification pending'}
               >
-                {entry.verified ? 'MedStamp Verified • Bound to case & device' : 'Verification pending'}
+                {entry.verified ? 'MedStamp Verified • This Evidence is Genuine' : 'Verification pending'}
               </div>
             </div>
           </div>
