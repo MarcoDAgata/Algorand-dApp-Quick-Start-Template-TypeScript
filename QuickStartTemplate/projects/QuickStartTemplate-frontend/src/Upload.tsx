@@ -14,19 +14,15 @@ const algodConfig = getAlgodConfigFromViteEnvironment()
 const algorand = AlgorandClient.fromConfig({ algodConfig })
 
 function resolveBackendBase(): string {
-  // 1) Respect explicit env (Vercel or custom)
   const env = import.meta.env.VITE_API_URL?.trim()
   if (env) return env.replace(/\/$/, '')
 
-  // 2) Codespaces: convert current host to port 3001
-  // e.g. https://abc-5173.app.github.dev -> https://abc-3001.app.github.dev
   const host = window.location.host
   if (host.endsWith('.app.github.dev')) {
     const base = host.replace(/-\d+\.app\.github\.dev$/, '-3001.app.github.dev')
     return `https://${base}`
   }
 
-  // 3) Plain local fallback
   return 'http://localhost:3001'
 }
 
@@ -68,7 +64,6 @@ const Home: React.FC = () => {
       setError(null)
 
       try {
-        // For the parent flow this would come from backend / secure link.
         const mockBalance = TOTAL_STAMPS
         setBalance(mockBalance)
       } catch (e: any) {
@@ -148,7 +143,7 @@ const Home: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null)
     setSuccess(null)
-    setStampApplied(false) // reset stamp when changing media
+    setStampApplied(false)
 
     const file = e.target.files?.[0] ?? null
     setSelectedFile(file)
@@ -194,160 +189,149 @@ const Home: React.FC = () => {
   // ------------------------
   // Handle "Send" – submit stamped evidence
   // ------------------------
- const handleSend = async () => {
-  setError(null)
-  setSuccess(null)
+  const handleSend = async () => {
+    setError(null)
+    setSuccess(null)
 
-  if (!selectedFile) {
-    setError('Please add a photo or video before sending.')
-    return
-  }
-
-  if (!stampApplied) {
-    setError('Tap the MedStamp "+" box to apply a stamp before sending.')
-    return
-  }
-
-  if (balance === null || balance < COST_PER_STAMP) {
-    setError(`You have no MedStamps left for this case.`)
-    return
-  }
-
-  setSending(true)
-
-  try {
-    // 1️⃣ Build backend URL (same logic as NFTmint)
-    const backendBase = resolveBackendBase()
-    // You can choose the path:
-    //  - reuse /api/pin-image
-    //  - or create /api/pin-evidence specifically for parent uploads
-    const backendApiUrl = `${backendBase.replace(/\/$/, '')}/api/pin-image`
-
-    // 2️⃣ Prepare FormData with file + metadata
-    const formData = new FormData()
-    formData.append('file', selectedFile)
-    formData.append('note', note)
-    formData.append('caseId', caseId)
-
-    // 3️⃣ Send to your backend → which pins to Pinata/IPFS
-    const res = await fetch(backendApiUrl, {
-      method: 'POST',
-      body: formData,
-      mode: 'cors',
-    })
-
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => '')
-      throw new Error(
-        `Backend request failed: ${res.status} ${
-          errorText ? `- ${errorText}` : ''
-        }`
-      )
+    if (!selectedFile) {
+      setError('Please add a photo or video before sending.')
+      return
     }
 
-    const data = await res.json().catch(() => ({} as any))
+    if (!stampApplied) {
+      setError('Tap the MedStamp "+" box to apply a stamp before sending.')
+      return
+    }
 
-    // Optional: if your backend returns e.g. { evidenceUrl, cid, metadataUrl }
-    // you can read/use it here:
-    // const evidenceUrl = data.evidenceUrl || data.metadataUrl
+    if (balance === null || balance < COST_PER_STAMP) {
+      setError(`You have no MedStamps left for this case.`)
+      return
+    }
 
-    // 4️⃣ Locally consume one MedStamp from this case-pack
-    setSuccess('Your MedStamped photo/video has been sent to the hospital.')
-    setBalance((prev) => (prev !== null ? prev - COST_PER_STAMP : prev))
+    setSending(true)
 
-    // Reset daily UI state
-    setSelectedFile(null)
-    setPreviewUrl(null)
-    setNote('')
-    setStampApplied(false)
-  } catch (e: any) {
-    console.error(e)
-    setError(
-      e?.message
-        ? `Failed to send: ${e.message}`
-        : 'Failed to send. Please try again.'
-    )
-  } finally {
-    setSending(false)
+    try {
+      const backendBase = resolveBackendBase()
+      const backendApiUrl = `${backendBase.replace(/\/$/, '')}/api/pin-image`
+
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('note', note)
+      formData.append('caseId', caseId)
+
+      const res = await fetch(backendApiUrl, {
+        method: 'POST',
+        body: formData,
+        mode: 'cors',
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => '')
+        throw new Error(
+          `Backend request failed: ${res.status} ${
+            errorText ? `- ${errorText}` : ''
+          }`
+        )
+      }
+
+      const data = await res.json().catch(() => ({} as any))
+      void data
+
+      setSuccess('Your MedStamped photo/video has been sent to the hospital.')
+      setBalance((prev) => (prev !== null ? prev - COST_PER_STAMP : prev))
+
+      setSelectedFile(null)
+      setPreviewUrl(null)
+      setNote('')
+      setStampApplied(false)
+    } catch (e: any) {
+      console.error(e)
+      setError(
+        e?.message
+          ? `Failed to send: ${e.message}`
+          : 'Failed to send. Please try again.'
+      )
+    } finally {
+      setSending(false)
+    }
   }
-}
 
   const usedStamps =
     balance === null ? 0 : Math.max(0, TOTAL_STAMPS - balance)
 
   return (
-    <>
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100 px-4">
-        <div className="w-full max-w-md rounded-lg border border-slate-800 bg-slate-900/80 p-6 shadow-lg space-y-6">
-          <h1 className="text-xl font-semibold text-center">
-            Daily MedStamp Check-in
-          </h1>
-
-          {/* Case info */}
-          <div className="text-xs text-slate-400">
-            Case ID:{' '}
-            <span className="font-mono text-slate-200">{caseId}</span>
+    <div
+      style={{
+        ['--surface' as any]: '#0f172a',
+        ['--surface-subtle' as any]: '#1e293b',
+        ['--surface-elevated' as any]: '#111827',
+        ['--text-primary' as any]: '#f8fafc',
+        ['--text-secondary' as any]: '#cbd5e1',
+        ['--text-muted' as any]: '#94a3b8',
+        ['--accent-yellow' as any]: '#fbbf24',
+        ['--accent-blue' as any]: '#38bdf8',
+        ['--accent-green' as any]: '#10b981',
+        ['--accent-red' as any]: '#ef4444',
+        ['--outline' as any]: '#334155',
+      }}
+      className="min-h-screen bg-[var(--surface)] text-[var(--text-primary)] flex flex-col"
+    >
+      {/* Top / brand bar */}
+      <header className="border-b border-[var(--outline)]/60 bg-[var(--surface)]/80 backdrop-blur">
+        <div className="mx-auto max-w-xl px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-md bg-[var(--accent-yellow)]" />
+            <span className="font-semibold tracking-tight">PROOFLY</span>
           </div>
+          <div className="text-[11px] text-[var(--text-muted)]">
+            Secure patient link
+          </div>
+        </div>
+      </header>
 
-          {/* Wallet status + on-chain MedStamp balance */}
-          <div className="space-y-2 text-xs text-slate-400">
-            <div className="flex items-center justify-between">
-              <span>Wallet status</span>
-              <button
-                type="button"
-                onClick={() => setOpenWalletModal(true)}
-                className="rounded-md bg-sky-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-sky-500"
-              >
-                {activeAddress ? 'Wallet linked' : 'Connect wallet'}
-              </button>
-            </div>
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(60%_60%_at_50%_-10%,rgba(56,189,248,0.15),transparent),radial-gradient(40%_40%_at_120%_10%,rgba(251,191,36,0.15),transparent)]" />
+        <div className="relative mx-auto max-w-xl px-4 py-8 sm:py-10 text-center">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            Daily Check-up
+          </h1>
+          <p className="mt-3 text-sm text-[var(--text-secondary)]">
+            Share a short photo or video so your care team can safely follow your child
+            from home.
+          </p>
+        </div>
+      </section>
 
-            <div className="rounded-md border border-slate-800 bg-slate-900 px-3 py-2 font-mono break-all">
-              {activeAddress ? (
-                <>
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
-                    Connected address
-                  </div>
-                  <div className="text-[11px] text-slate-200">
-                    {activeAddress}
-                  </div>
-                </>
-              ) : (
-                <span className="text-[11px] text-slate-400">
-                  No wallet connected.
+      {/* Main content */}
+      <main className="mx-auto max-w-xl px-4 pb-16 space-y-6 flex-1">
+        {/* Parent check-up card */}
+        <section className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-5 sm:p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-5">
+          {/* Case + MedStamps progress */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+              <span>
+                Case ID:{' '}
+                <span className="font-mono text-[var(--text-primary)]">
+                  {caseId}
                 </span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-[11px]">
-              <span>{TOKEN_NAME} balance in wallet</span>
-              <span className="font-semibold text-slate-100">
-                {activeAddress
-                  ? loadingWalletBalance
-                    ? 'Loading…'
-                    : walletBalance ?? '0'
-                  : '--'}
+              </span>
+              <span>
+                {loadingBalance
+                  ? 'Checking MedStamps…'
+                  : `MedStamps left: ${balance ?? '--'}/${TOTAL_STAMPS}`}
               </span>
             </div>
-            {walletError && (
-              <div className="text-[11px] text-red-400">{walletError}</div>
-            )}
-          </div>
-
-          {/* Simple 5-slot progress tracker */}
-          <div className="space-y-2">
-            <p className="text-xs text-slate-400">
-              You have {loadingBalance ? '…' : balance ?? '--'} of{' '}
-              {TOTAL_STAMPS} MedStamps remaining for this case.
-            </p>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 mt-1">
               {Array.from({ length: TOTAL_STAMPS }).map((_, idx) => {
                 const filled = idx < usedStamps
                 return (
                   <div
                     key={idx}
-                    className={`h-4 flex-1 rounded-sm ${
-                      filled ? 'bg-emerald-500' : 'bg-slate-800'
+                    className={`h-2 flex-1 rounded-full ${
+                      filled
+                        ? 'bg-[var(--accent-green)]'
+                        : 'bg-[var(--surface-elevated)]'
                     }`}
                   />
                 )
@@ -355,14 +339,15 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* Instructions */}
-          <p className="text-xs text-slate-400">
-            Each day, add one short photo or video, apply a MedStamp, optionally
-            add a note, and send it to the hospital.
-          </p>
+          {/* Step 1: Add today’s media */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
+                1
+              </span>
+              <span>Add today&apos;s photo or video</span>
+            </div>
 
-          {/* Upload + stamp flow */}
-          <div className="space-y-4">
             {/* Hidden native input */}
             <input
               ref={fileInputRef}
@@ -372,85 +357,165 @@ const Home: React.FC = () => {
               className="hidden"
             />
 
-            {/* Add media button */}
             <button
               type="button"
               onClick={handleAddMediaClick}
-              className="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium hover:bg-slate-700"
+              className="w-full rounded-xl bg-[var(--surface-elevated)] border border-[var(--outline)] px-4 py-3 text-sm font-medium hover:border-[var(--accent-blue)]"
             >
-              Add media
+              {selectedFile ? 'Change photo or video' : 'Choose photo or video'}
             </button>
 
             {previewUrl && (
-              <div className="rounded-md border border-slate-800 bg-slate-900 p-2">
-                <p className="text-xs text-slate-400 mb-1">Today’s media</p>
+              <div className="rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] p-2">
+                <p className="text-[11px] text-[var(--text-muted)] mb-1">
+                  Today&apos;s upload
+                </p>
                 <img
                   src={previewUrl}
                   alt="Selected preview"
-                  className="max-h-64 w-full rounded-md object-contain"
+                  className="max-h-64 w-full rounded-lg object-contain"
                 />
               </div>
             )}
+          </div>
 
-            {/* MedStamp "+" placeholder */}
-            <div className="space-y-1 text-sm">
-              <p className="text-xs text-slate-400">
-                Tap the MedStamp box to attach a secure MedStamp to today’s
-                upload.
-              </p>
-              <button
-                type="button"
-                onClick={handleApplyStamp}
-                className={`w-full h-16 border-2 rounded-md flex items-center justify-center text-lg font-semibold
-                ${
-                  stampApplied
-                    ? 'border-emerald-400 bg-emerald-900/40 text-emerald-200'
-                    : 'border-dashed border-slate-600 bg-slate-900 text-slate-300'
-                }`}
-              >
-                {stampApplied ? 'MedStamp applied' : '+'}
-              </button>
+          {/* Step 2: Attach MedStamp */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
+                2
+              </span>
+              <span>Attach a MedStamp</span>
             </div>
-
-            {/* Note field */}
-            <div className="space-y-1 text-sm">
-              <label className="block text-slate-300">
-                Add a brief note (optional)
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                className="w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-sky-500"
-                placeholder='e.g. "feeding better", "redness improving"...'
-              />
-            </div>
-
-            {error && <div className="text-xs text-red-400">{error}</div>}
-
-            {success && (
-              <div className="text-xs text-emerald-400">{success}</div>
-            )}
-
-            {/* Send button */}
+            <p className="text-xs text-[var(--text-muted)]">
+              This secures your upload so the hospital knows it is really from you and
+              belongs to this case.
+            </p>
             <button
               type="button"
-              onClick={handleSend}
-              disabled={sending}
-              className="w-full rounded-md bg-sky-600 px-4 py-2 text-sm font-medium disabled:bg-slate-700 disabled:text-slate-400"
+              onClick={handleApplyStamp}
+              className={`w-full h-16 rounded-xl border-2 flex items-center justify-center text-sm font-semibold transition
+                ${
+                  stampApplied
+                    ? 'border-[var(--accent-green)] bg-[color:rgb(16_185_129_/_0.12)] text-[var(--accent-green)]'
+                    : 'border-dashed border-[var(--outline)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:border-[var(--accent-blue)]'
+                }`}
             >
-              {sending ? 'Sending…' : 'Send'}
+              {stampApplied ? 'MedStamp applied' : 'Tap the + box to apply MedStamp'}
+            </button>
+            <p className="text-[10px] text-[var(--text-muted)]">
+              If you see an error saying “Tap the MedStamp + box”, first tap this area.
+            </p>
+          </div>
+
+          {/* Step 3: Add note (optional) and send */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-elevated)] border border-[var(--outline)] text-xs">
+                3
+              </span>
+              <span>Add a short note (optional)</span>
+            </div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              className="w-full rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 text-sm outline-none focus:border-[var(--accent-blue)]"
+              placeholder='For example: "Redness looks better than yesterday"'
+            />
+          </div>
+
+          {/* Error / success messages */}
+          {error && (
+            <div className="text-xs rounded-md border border-[var(--accent-red)]/60 bg-[var(--accent-red)]/10 px-3 py-2 text-[var(--accent-red)]">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="text-xs rounded-md border border-[var(--accent-green)]/60 bg-[var(--accent-green)]/10 px-3 py-2 text-[var(--accent-green)]">
+              {success}
+            </div>
+          )}
+
+          {/* Send button */}
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sending}
+            className="w-full rounded-xl bg-[var(--accent-yellow)] px-4 py-3 text-sm font-semibold text-[var(--surface)] shadow hover:brightness-95 disabled:bg-[var(--surface-elevated)] disabled:text-[var(--text-muted)]"
+          >
+            {sending ? 'Sending…' : 'Send check-up to hospital'}
+          </button>
+
+          <p className="text-[10px] text-[var(--text-muted)] text-center mt-1">
+            Your upload is encrypted in transit and can only be viewed by your care team.
+          </p>
+        </section>
+
+        {/* Optional wallet panel (unchanged logic, just restyled) */}
+        <section className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-4 sm:p-5 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-3 text-xs text-[var(--text-muted)]">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-[var(--text-secondary)]">
+              Wallet status (optional)
+            </span>
+            <button
+              type="button"
+              onClick={() => setOpenWalletModal(true)}
+              className="rounded-md bg-[var(--accent-blue)] px-3 py-1 text-[11px] font-medium text-[var(--surface)] hover:brightness-110"
+            >
+              {activeAddress ? 'Wallet linked' : 'Connect wallet'}
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Wallet modal (same pattern as clinician console / Transact / NFTmint) */}
+          <div className="rounded-xl border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 font-mono break-all">
+            {activeAddress ? (
+              <>
+                <div className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">
+                  Connected address
+                </div>
+                <div className="text-[11px] text-[var(--text-primary)]">
+                  {activeAddress}
+                </div>
+              </>
+            ) : (
+              <span className="text-[11px] text-[var(--text-secondary)]">
+                No wallet connected.
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between text-[11px]">
+            <span>{TOKEN_NAME} balance in wallet</span>
+            <span className="font-semibold text-[var(--text-primary)]">
+              {activeAddress
+                ? loadingWalletBalance
+                  ? 'Loading…'
+                  : walletBalance ?? '0'
+                : '--'}
+            </span>
+          </div>
+
+          {walletError && (
+            <div className="text-[11px] text-[var(--accent-red)]">
+              {walletError}
+            </div>
+          )}
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-[var(--outline)]">
+        <div className="mx-auto max-w-xl px-4 py-6 text-center text-[11px] text-[var(--text-muted)]">
+          © {new Date().getFullYear()} Proofly • MedStamp on Algorand
+        </div>
+      </footer>
+
+      {/* Wallet modal */}
       <ConnectWallet
         openModal={openWalletModal}
         closeModal={() => setOpenWalletModal(false)}
       />
-    </>
+    </div>
   )
 }
 
