@@ -338,7 +338,7 @@ useEffect(() => {
               href="#issue"
               className="rounded-lg bg-[var(--accent-yellow)] px-6 py-3 text-[var(--surface)] font-medium shadow hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)]/70"
             >
-              Issue MedStamps
+                Give New MedStamps
             </a>
           </div>
         </div>
@@ -347,40 +347,18 @@ useEffect(() => {
       {/* MAIN single-column */}
       <main id="issue" className="mx-auto max-w-3xl px-4 pb-20 space-y-8">
         {/* Issue MedStamps panel */}
+                {/* Issue MedStamps panel */}
         <div className="rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-6">
-          <h2 className="text-2xl font-semibold">Issue New MedStamps</h2>
-
-          {/* Wallet status */}
-          <div className="text-xs font-mono break-all rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] p-3">
-            {activeAddress ? (
-              <>
-                <span className="text-[var(--text-muted)] block mb-1">Connected wallet:</span>
-                <span>{activeAddress}</span>
-              </>
-            ) : (
-              <span className="text-[var(--accent-red)]">
-                No wallet connected. Open the wallet modal in your main app to connect.
-              </span>
-            )}
-          </div>
-
-          {/* Balance */}
-          <div>
-            <div className="flex items-center justify-between text-xs mb-1 text-[var(--text-muted)]">
-              <span>Token</span>
-              <span>Balance</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 text-sm">
-              <span>
-                {TOKEN_NAME}{' '}
-                <span className="text-[var(--text-muted)] text-xs">(ID: {TOKEN_ID})</span>
-              </span>
-              <span>{loadingBalance ? 'Loading...' : balance ?? '--'}</span>
-            </div>
-          </div>
+          <h2 className="text-2xl font-semibold">Give New MedStamps</h2>
+          <p className="text-xs text-[var(--text-muted)]">
+            Choose a patient to start a remote check-up. This will issue{' '}
+            <span className="font-semibold">{STAMPS_PER_PACK} single-use MedStamps</span> for this case,
+            valid for <span className="font-semibold">{VALIDITY_DAYS} days</span>.
+          </p>
 
           {/* Patient selection + issue form */}
           <form onSubmit={handleIssueMedStamps} className="space-y-4">
+            {/* Patient first */}
             <div className="space-y-1 text-sm">
               <label className="block text-[var(--text-secondary)]">Select patient / case</label>
               <select
@@ -411,11 +389,34 @@ useEffect(() => {
               </div>
             )}
 
-            <p className="text-xs text-[var(--text-muted)]">
-              Generate{' '}
-              <span className="font-semibold">{STAMPS_PER_PACK} single-use MedStamps</span> valid for <span className="font-semibold">{VALIDITY_DAYS} days</span>.
+            {/* Wallet status (moved lower – still same logic) */}
+            <div className="text-xs font-mono break-all rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] p-3">
+              {activeAddress ? (
+                <>
+                  <span className="text-[var(--text-muted)] block mb-1">Connected wallet:</span>
+                  <span>{activeAddress}</span>
+                </>
+              ) : (
+                <span className="text-[var(--accent-red)]">
+                  No wallet connected. Use the wallet button at the top to link your account first.
+                </span>
+              )}
+            </div>
 
-            </p>
+            {/* Token + balance moved towards the end */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1 text-[var(--text-muted)]">
+                <span>Token</span>
+                <span>Balance</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-[var(--outline)] bg-[var(--surface-elevated)] px-3 py-2 text-sm">
+                <span>
+                  {TOKEN_NAME}{' '}
+                  <span className="text-[var(--text-muted)] text-xs">(ID: {TOKEN_ID})</span>
+                </span>
+                <span>{loadingBalance ? 'Loading...' : balance ?? '--'}</span>
+              </div>
+            </div>
 
             {error && (
               <div className="text-xs border border-[var(--accent-red)]/50 bg-[var(--accent-red)]/10 px-3 py-2 rounded-md text-[var(--accent-red)]">
@@ -442,7 +443,7 @@ useEffect(() => {
               disabled={!activeAddress || issuing}
               className="mt-2 w-full rounded-lg bg-[var(--accent-yellow)] px-4 py-3 text-sm font-medium text-[var(--surface)] shadow hover:brightness-95 disabled:bg-[var(--surface-elevated)] disabled:text-[var(--text-muted)]"
             >
-              {issuing ? 'Issuing…' : 'Issue MedStamps'}
+              {issuing ? 'Issuing…' : 'Issue MedStamps for this patient'}
             </button>
           </form>
         </div>
@@ -453,7 +454,7 @@ useEffect(() => {
   className="w-full rounded-2xl border border-[var(--outline)] bg-[var(--surface-subtle)] p-6 shadow-[0_4px_16px_rgba(0,0,0,0.30)] space-y-4"
 >
   <div className="flex items-center justify-between">
-    <h2 className="text-xl font-semibold">Clinician Inbox</h2>
+    <h2 className="text-xl font-semibold">My Clinical Inbox</h2>
     <span className="text-xs text-[var(--text-muted)]">
       New entries: {inboxEntries.filter((e) => e.status === 'new').length}
     </span>
@@ -548,7 +549,7 @@ useEffect(() => {
           {/* Clinician notes (no logic change; simple textarea placeholder) */}
           <div className="mt-5">
             <label className="block text-sm text-[var(--text-secondary)] mb-2">
-              Clinician notes
+              Clinical Notes
             </label>
             <textarea
               rows={3}
