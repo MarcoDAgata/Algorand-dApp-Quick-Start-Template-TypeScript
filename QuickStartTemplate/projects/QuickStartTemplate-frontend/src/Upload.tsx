@@ -310,8 +310,8 @@ const Home: React.FC = () => {
             Capture Once. Prove Forever.
           </h2>
           <p className="mt-4 text-sm text-[var(--text-secondary)]">
-            Use this secure page to share a short photo or video with your care team.
-            It helps them follow your child’s recovery between hospital visits.
+            A quick update helps your care team monitor your child’s healing.<br />
+Share a photo or short video to keep them informed day by day.
           </p>
         </div>
       </section>
@@ -470,7 +470,7 @@ const Home: React.FC = () => {
                     : 'border-dashed border-[var(--outline)] bg-[var(--surface-elevated)] text-[var(--text-secondary)] hover:border-[var(--accent-blue)]'
                 }`}
             >
-              {stampApplied ? 'MedStamp applied' : 'Tap the + box to apply MedStamp'}
+              {stampApplied ? 'MedStamp applied' : 'Apply MedStamp'}
             </button>
 
             <p className="text-[10px] text-[var(--text-muted)]">
