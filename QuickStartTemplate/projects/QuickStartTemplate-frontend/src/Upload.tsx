@@ -293,12 +293,15 @@ const Home: React.FC = () => {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(60%_60%_at_50%_-10%,rgba(56,189,248,0.15),transparent),radial-gradient(40%_40%_at_120%_10%,rgba(251,191,36,0.15),transparent)]" />
         <div className="relative mx-auto max-w-xl px-4 py-8 sm:py-10 text-center">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            Daily Check-up
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+            Proofly
           </h1>
-          <p className="mt-3 text-sm text-[var(--text-secondary)]">
-            Share a short photo or video so your care team can safely follow your child
-            from home.
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--accent-yellow)] mt-2">
+            Capture Once. Prove Forever.
+          </h2>
+          <p className="mt-4 text-sm text-[var(--text-secondary)]">
+            Use this secure page to share a short photo or video with your care team.
+            It helps them follow your child’s recovery between hospital visits.
           </p>
         </div>
       </section>
