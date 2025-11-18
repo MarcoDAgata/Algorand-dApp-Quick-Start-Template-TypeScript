@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { SnackbarProvider } from 'notistack'
 import { Route, Routes } from "react-router-dom"
 import Home from './Home'
+import Reuse from './Reuse'
 import Upload from './Upload'
 import { getAlgodConfigFromViteEnvironment, getKmdConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
 
@@ -55,6 +56,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/upload" element={<Upload />} />
+          <Route path="/reuse" element={<Reuse />} />
         </Routes>
         <Analytics />
       </WalletProvider>
